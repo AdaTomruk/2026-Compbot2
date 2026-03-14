@@ -2,93 +2,92 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.Degrees;
-import static edu.wpi.first.units.Units.Kilograms;
-import static edu.wpi.first.units.Units.Meters;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
 import static edu.wpi.first.units.Units.RotationsPerSecondPerSecond;
 import static frc.robot.Constants.ShooterConstants.*;
 
+import com.ctre.phoenix6.configs.MotionMagicConfigs;
+import com.ctre.phoenix6.configs.Slot0Configs;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.MotionMagicVoltage;
+import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 
-import edu.wpi.first.math.controller.ArmFeedforward;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import yams.mechanisms.config.ArmConfig;
-import yams.mechanisms.positional.Arm;
-import yams.motorcontrollers.SmartMotorController;
-import yams.motorcontrollers.SmartMotorControllerConfig;
-import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
-import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
-import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
-import yams.motorcontrollers.ctre.TalonFXWrapper;
-import yams.gearing.GearBox;
-import yams.gearing.MechanismGearing;
-
 /**
- * Variable hood subsystem powered by YAMS.
- * Controls a single Kraken X44 motor to adjust the shooter's angle.
+ * Variable hood subsystem.
+ * Controls a single Kraken X60 motor to adjust the shooter's angle.
  */
 public class VariableHoodSubsystem extends SubsystemBase {
 
     // ── Hardware ──────────────────────────────────────────────────────────────
-    private final TalonFX hoodMotor = new TalonFX(HOOD_MOTOR_ID, CANBUS);
+    private final TalonFX hoodMotor;
 
-    // ── YAMS Configuration ────────────────────────────────────────────────────
-    private final SmartMotorControllerConfig hoodSmcConfig =
-        new SmartMotorControllerConfig(this)
-            .withControlMode(ControlMode.CLOSED_LOOP)
-            // Real-world TalonFX hardware PID & Feedforward
-            .withClosedLoopController(
-                HOOD_kP, HOOD_kI, HOOD_kD,
-                RotationsPerSecond.of(HOOD_MAX_VEL_DEG_PER_SEC / 360.0),
-                RotationsPerSecondPerSecond.of(HOOD_MAX_ACCEL_DEG_PER_SEC2 / 360.0))
-            .withFeedforward(new ArmFeedforward(HOOD_kS, HOOD_kG, HOOD_kV))
-
-            // Simulation-specific voltage PID & Feedforward
-            .withSimClosedLoopController(
-                5.0, 0.0, 0.0,
-                RotationsPerSecond.of(HOOD_MAX_VEL_DEG_PER_SEC / 360.0),
-                RotationsPerSecondPerSecond.of(HOOD_MAX_ACCEL_DEG_PER_SEC2 / 360.0))
-            .withSimFeedforward(new ArmFeedforward(0.0, 0.3, 0.0))
-
-            // Motor Settings
-            .withTelemetry("HoodMotor", TelemetryVerbosity.HIGH)
-            .withGearing(new MechanismGearing(GearBox.fromRatio(HOOD_GEAR_RATIO)))
-            .withMotorInverted(HOOD_MOTOR_INVERTED)
-            .withIdleMode(MotorMode.BRAKE)
-            .withSupplyCurrentLimit(Amps.of(HOOD_SUPPLY_CURRENT_LIMIT))
-            .withStatorCurrentLimit(Amps.of(HOOD_STATOR_CURRENT_LIMIT));
-
-    private final SmartMotorController hoodSmartController =
-        new TalonFXWrapper(hoodMotor, DCMotor.getKrakenX60FOC(1), hoodSmcConfig);
-
-    private final ArmConfig hoodArmConfig =
-        new ArmConfig(hoodSmartController)
-            .withSoftLimits(Degrees.of(HOOD_MIN_ANGLE_DEG), Degrees.of(HOOD_MAX_ANGLE_DEG))
-            .withHardLimit(Degrees.of(HOOD_MIN_ANGLE_DEG - 5.0), Degrees.of(HOOD_MAX_ANGLE_DEG + 5.0))
-            .withStartingPosition(Degrees.of(HOOD_STARTING_ANGLE_DEG))
-            .withLength(Meters.of(HOOD_ARM_LENGTH_METERS))
-            .withMass(Kilograms.of(HOOD_ARM_MASS_KG))
-            .withTelemetry("Hood", TelemetryVerbosity.HIGH);
-
-    private final Arm hoodArm = new Arm(hoodArmConfig);
+    // ── Control Requests ──────────────────────────────────────────────────────
+    private final MotionMagicVoltage motionMagicRequest = new MotionMagicVoltage(0).withEnableFOC(true);
+    private final NeutralOut neutralRequest = new NeutralOut();
 
     public VariableHoodSubsystem() {
-        // Initialization handled fully by YAMS configurations above
+        hoodMotor = new TalonFX(HOOD_MOTOR_ID, CANBUS);
+        configureMotor();
+    }
+
+    private void configureMotor() {
+        TalonFXConfiguration config = new TalonFXConfiguration();
+
+        // Motor output
+        config.MotorOutput.Inverted = HOOD_MOTOR_INVERTED ?
+            InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
+        config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+
+        // Current limits
+        config.CurrentLimits.SupplyCurrentLimit = HOOD_SUPPLY_CURRENT_LIMIT;
+        config.CurrentLimits.SupplyCurrentLimitEnable = true;
+        config.CurrentLimits.StatorCurrentLimit = HOOD_STATOR_CURRENT_LIMIT;
+        config.CurrentLimits.StatorCurrentLimitEnable = true;
+
+        // Gear ratio
+        config.Feedback.SensorToMechanismRatio = HOOD_GEAR_RATIO;
+
+        // PID & Feedforward (Slot 0)
+        config.Slot0.kP = HOOD_kP;
+        config.Slot0.kI = HOOD_kI;
+        config.Slot0.kD = HOOD_kD;
+        config.Slot0.kS = HOOD_kS;
+        config.Slot0.kG = HOOD_kG;
+        config.Slot0.kV = HOOD_kV;
+
+        // Motion Magic
+        // Convert from degrees/sec to rotations/sec for motor
+        double cruiseVelocityRPS = (HOOD_MAX_VEL_DEG_PER_SEC / 360.0) * HOOD_GEAR_RATIO;
+        double accelerationRPS2 = (HOOD_MAX_ACCEL_DEG_PER_SEC2 / 360.0) * HOOD_GEAR_RATIO;
+
+        config.MotionMagic.MotionMagicCruiseVelocity = cruiseVelocityRPS;
+        config.MotionMagic.MotionMagicAcceleration = accelerationRPS2;
+        config.MotionMagic.MotionMagicJerk = accelerationRPS2 * 10.0; // 10x acceleration
+
+        // Soft limits (convert degrees to rotations)
+        config.SoftwareLimitSwitch.ForwardSoftLimitThreshold = HOOD_MAX_ANGLE_DEG / 360.0;
+        config.SoftwareLimitSwitch.ReverseSoftLimitThreshold = HOOD_MIN_ANGLE_DEG / 360.0;
+        config.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
+        config.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
+
+        hoodMotor.getConfigurator().apply(config);
+
+        // Set initial position to starting angle
+        hoodMotor.setPosition(HOOD_STARTING_ANGLE_DEG / 360.0);
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     @Override
     public void periodic() {
-        hoodArm.updateTelemetry();
-    }
-
-    @Override
-    public void simulationPeriodic() {
-        hoodArm.simIterate();
+        // Telemetry is handled by Phoenix signals
     }
 
     // ── Hood Control ──────────────────────────────────────────────────────────
@@ -105,7 +104,8 @@ public class VariableHoodSubsystem extends SubsystemBase {
 
     /** Sets hood to a specific angle in degrees. */
     public void setAngle(double degrees) {
-        hoodArm.setMechanismPositionSetpoint(Degrees.of(degrees));
+        double rotations = degrees / 360.0;
+        hoodMotor.setControl(motionMagicRequest.withPosition(rotations));
     }
 
     /**
@@ -113,19 +113,19 @@ public class VariableHoodSubsystem extends SubsystemBase {
      * Use this in RobotContainer to easily bind buttons.
      */
     public Command setAngleCommand(double degrees) {
-        return hoodArm.run(Degrees.of(degrees));
+        return Commands.runOnce(() -> setAngle(degrees), this);
     }
 
     /** Stops hood movement immediately. */
     public void stop() {
-        hoodSmartController.stopClosedLoopController();
+        hoodMotor.setControl(neutralRequest);
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
     /** @return Current hood angle in degrees. */
     public double getAngleDegrees() {
-        return hoodSmartController.getMechanismPosition().in(Degrees);
+        return hoodMotor.getPosition().getValueAsDouble() * 360.0;
     }
 
     /** @return true when hood is at target angle within tolerance. */

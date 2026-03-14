@@ -2,93 +2,97 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Amps;
 import static edu.wpi.first.units.Units.RotationsPerSecond;
+import static edu.wpi.first.units.Units.RotationsPerSecondPerSecond;
 import static frc.robot.Constants.ShooterConstants.*;
 
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 
-import edu.wpi.first.math.controller.SimpleMotorFeedforward;
-import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import yams.mechanisms.config.FlywheelConfig;
-import yams.mechanisms.rotational.Flywheel;
-import yams.motorcontrollers.SmartMotorController;
-import yams.motorcontrollers.SmartMotorControllerConfig;
-import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
-import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
-import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
-import yams.motorcontrollers.ctre.TalonFXWrapper;
-import yams.gearing.GearBox;
-import yams.gearing.MechanismGearing;
-
 /**
- * Flywheel shooter subsystem powered by YAMS.
+ * Flywheel shooter subsystem.
  * Controls dual Kraken X60 motors for shooting game pieces.
  */
 public class FlywheelSubsystem extends SubsystemBase {
 
     // ── Hardware ──────────────────────────────────────────────────────────────
-    private final TalonFX leftFlywheelMotor = new TalonFX(LEFT_FLYWHEEL_MOTOR_ID, CANBUS);
-    private final TalonFX rightFlywheelMotor = new TalonFX(RIGHT_FLYWHEEL_MOTOR_ID, CANBUS);
+    private final TalonFX leftFlywheelMotor;
+    private final TalonFX rightFlywheelMotor;
 
-    // ── YAMS Configuration ────────────────────────────────────────────────────
-    private final SmartMotorControllerConfig leftFlywheelConfig =
-        new SmartMotorControllerConfig(this)
-            .withControlMode(ControlMode.CLOSED_LOOP)
-            .withClosedLoopController(
-                FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD,
-                RotationsPerSecond.of(STANDARD_SHOOT_RPM / 60.0),
-                RotationsPerSecond.of(0.0)) // No acceleration constraint for flywheels
-            .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, FLYWHEEL_kA))
-            .withTelemetry("LeftFlywheel", TelemetryVerbosity.HIGH)
-            .withGearing(new MechanismGearing(GearBox.fromRatio(FLYWHEEL_GEAR_RATIO)))
-            .withMotorInverted(LEFT_FLYWHEEL_INVERTED)
-            .withIdleMode(MotorMode.COAST)
-            .withSupplyCurrentLimit(Amps.of(FLYWHEEL_SUPPLY_CURRENT_LIMIT))
-            .withStatorCurrentLimit(Amps.of(FLYWHEEL_STATOR_CURRENT_LIMIT));
-
-    private final SmartMotorController leftFlywheelController =
-        new TalonFXWrapper(leftFlywheelMotor, DCMotor.getKrakenX60(1), leftFlywheelConfig);
-
-    private final SmartMotorControllerConfig rightFlywheelConfig =
-        new SmartMotorControllerConfig(this)
-            .withControlMode(ControlMode.CLOSED_LOOP)
-            .withClosedLoopController(
-                FLYWHEEL_kP, FLYWHEEL_kI, FLYWHEEL_kD,
-                RotationsPerSecond.of(STANDARD_SHOOT_RPM / 60.0),
-                RotationsPerSecond.of(0.0))
-            .withFeedforward(new SimpleMotorFeedforward(FLYWHEEL_kS, FLYWHEEL_kV, FLYWHEEL_kA))
-            .withTelemetry("RightFlywheel", TelemetryVerbosity.HIGH)
-            .withGearing(new MechanismGearing(GearBox.fromRatio(FLYWHEEL_GEAR_RATIO)))
-            .withMotorInverted(RIGHT_FLYWHEEL_INVERTED)
-            .withIdleMode(MotorMode.COAST)
-            .withSupplyCurrentLimit(Amps.of(FLYWHEEL_SUPPLY_CURRENT_LIMIT))
-            .withStatorCurrentLimit(Amps.of(FLYWHEEL_STATOR_CURRENT_LIMIT));
-
-    private final SmartMotorController rightFlywheelController =
-        new TalonFXWrapper(rightFlywheelMotor, DCMotor.getKrakenX60(1), rightFlywheelConfig);
-
-    private final FlywheelConfig flywheelConfig =
-        new FlywheelConfig(leftFlywheelController)
-            .withFollower(rightFlywheelController)
-            .withTelemetry("Flywheel", TelemetryVerbosity.HIGH);
-
-    private final Flywheel flywheel = new Flywheel(flywheelConfig);
+    // ── Control Requests ──────────────────────────────────────────────────────
+    private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withEnableFOC(true);
+    private final NeutralOut neutralRequest = new NeutralOut();
 
     public FlywheelSubsystem() {
-        // Initialization handled fully by YAMS configurations above
+        // ── Motor Initialization ──────────────────────────────────────────────
+        leftFlywheelMotor = new TalonFX(LEFT_FLYWHEEL_MOTOR_ID, CANBUS);
+        rightFlywheelMotor = new TalonFX(RIGHT_FLYWHEEL_MOTOR_ID, CANBUS);
+
+        configureMotors();
+    }
+
+    private void configureMotors() {
+        // ── Left Motor Configuration ──────────────────────────────────────────
+        TalonFXConfiguration leftConfig = new TalonFXConfiguration();
+
+        // Motor output
+        leftConfig.MotorOutput.Inverted = LEFT_FLYWHEEL_INVERTED ?
+            InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
+        leftConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+
+        // Current limits
+        leftConfig.CurrentLimits.SupplyCurrentLimit = FLYWHEEL_SUPPLY_CURRENT_LIMIT;
+        leftConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
+        leftConfig.CurrentLimits.StatorCurrentLimit = FLYWHEEL_STATOR_CURRENT_LIMIT;
+        leftConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+
+        // PID & Feedforward (Slot 0)
+        leftConfig.Slot0.kP = FLYWHEEL_kP;
+        leftConfig.Slot0.kI = FLYWHEEL_kI;
+        leftConfig.Slot0.kD = FLYWHEEL_kD;
+        leftConfig.Slot0.kS = FLYWHEEL_kS;
+        leftConfig.Slot0.kV = FLYWHEEL_kV;
+        leftConfig.Slot0.kA = FLYWHEEL_kA;
+
+        // Gear ratio (1:1 direct drive)
+        leftConfig.Feedback.SensorToMechanismRatio = FLYWHEEL_GEAR_RATIO;
+
+        leftFlywheelMotor.getConfigurator().apply(leftConfig);
+
+        // ── Right Motor Configuration (Follower) ──────────────────────────────
+        TalonFXConfiguration rightConfig = new TalonFXConfiguration();
+
+        rightConfig.MotorOutput.Inverted = RIGHT_FLYWHEEL_INVERTED ?
+            InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
+        rightConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+
+        rightConfig.CurrentLimits.SupplyCurrentLimit = FLYWHEEL_SUPPLY_CURRENT_LIMIT;
+        rightConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
+        rightConfig.CurrentLimits.StatorCurrentLimit = FLYWHEEL_STATOR_CURRENT_LIMIT;
+        rightConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+
+        rightConfig.Slot0.kP = FLYWHEEL_kP;
+        rightConfig.Slot0.kI = FLYWHEEL_kI;
+        rightConfig.Slot0.kD = FLYWHEEL_kD;
+        rightConfig.Slot0.kS = FLYWHEEL_kS;
+        rightConfig.Slot0.kV = FLYWHEEL_kV;
+        rightConfig.Slot0.kA = FLYWHEEL_kA;
+
+        rightConfig.Feedback.SensorToMechanismRatio = FLYWHEEL_GEAR_RATIO;
+
+        rightFlywheelMotor.getConfigurator().apply(rightConfig);
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     @Override
     public void periodic() {
-        flywheel.updateTelemetry();
-    }
-
-    @Override
-    public void simulationPeriodic() {
-        flywheel.simIterate();
+        // Telemetry is handled by Phoenix signals
     }
 
     // ── Flywheel Control ──────────────────────────────────────────────────────
@@ -105,22 +109,24 @@ public class FlywheelSubsystem extends SubsystemBase {
 
     /** Sets flywheel to a specific RPM. */
     public void setRPM(double rpm) {
-        flywheel.setMechanismVelocitySetpoint(RotationsPerSecond.of(rpm / 60.0));
+        double rps = rpm / 60.0;
+        leftFlywheelMotor.setControl(velocityRequest.withVelocity(rps));
+        rightFlywheelMotor.setControl(velocityRequest.withVelocity(rps));
     }
 
     /** Stops the flywheel. */
     public void stop() {
-        leftFlywheelController.stopClosedLoopController();
-        rightFlywheelController.stopClosedLoopController();
+        leftFlywheelMotor.setControl(neutralRequest);
+        rightFlywheelMotor.setControl(neutralRequest);
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
     /** @return Current flywheel speed in RPM (average of both motors). */
     public double getRPM() {
-        double leftRPM = leftFlywheelController.getMechanismVelocity().in(RotationsPerSecond) * 60.0;
-        double rightRPM = rightFlywheelController.getMechanismVelocity().in(RotationsPerSecond) * 60.0;
-        return (leftRPM + rightRPM) / 2.0;
+        double leftRPS = leftFlywheelMotor.getVelocity().getValueAsDouble();
+        double rightRPS = rightFlywheelMotor.getVelocity().getValueAsDouble();
+        return ((leftRPS + rightRPS) / 2.0) * 60.0;
     }
 
     /** @return true when flywheel is at target speed within tolerance. */
