@@ -49,7 +49,7 @@ public class PivotSubsystem extends SubsystemBase {
             
             // Simulation-specific voltage PID & Feedforward
             .withSimClosedLoopController(
-                5.0, 0.0, 0.0, 
+                0.5, 0.0, 0.0, 
                 RotationsPerSecond.of(PIVOT_MAX_VEL_DEG_PER_SEC / 360.0),
                 RotationsPerSecondPerSecond.of(PIVOT_MAX_ACCEL_DEG_PER_SEC2 / 360.0))
             .withSimFeedforward(new ArmFeedforward(0.0, 0.5, 0.0))

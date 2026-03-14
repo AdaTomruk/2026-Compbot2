@@ -160,6 +160,11 @@ public class TurretSubsystem extends SubsystemBase {
                 ),
                 DCMotor.getKrakenX60Foc(1)
             );
+
+            // ADD THESE TWO LINES TO "POWER ON" THE SENSORS IN SIMULATION
+            turretEncoder10t.getSimState().setSupplyVoltage(12.0);
+            turretEncoder17t.getSimState().setSupplyVoltage(12.0);
+            
             // In sim, CRT will not work — mark as seeded at 0 so robot can be tested
             turretMotor.setPosition(0);
             crtSeeded = true;
