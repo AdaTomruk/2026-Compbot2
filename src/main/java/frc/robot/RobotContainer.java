@@ -26,6 +26,8 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.PivotSubsystem;
+import frc.robot.subsystems.FlywheelSubsystem;
+import frc.robot.subsystems.VariableHoodSubsystem;
 
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -53,6 +55,8 @@ public class RobotContainer {
     private final TurretSubsystem turret = new TurretSubsystem(() -> drivetrain.getState().Pose.getRotation());
     private final IntakeSubsystem intake = new IntakeSubsystem();
     private final PivotSubsystem pivot = new PivotSubsystem();
+    private final FlywheelSubsystem flywheel = new FlywheelSubsystem();
+    private final VariableHoodSubsystem hood = new VariableHoodSubsystem();
 
     /* Path follower */
     private final SendableChooser<Command> autoChooser;
