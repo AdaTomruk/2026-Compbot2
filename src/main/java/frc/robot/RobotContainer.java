@@ -5,6 +5,7 @@
 package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
+import static frc.robot.Constants.ShooterConstants.*;
 
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.swerve.SwerveRequest;
@@ -26,6 +27,8 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.PivotSubsystem;
+import frc.robot.subsystems.FlywheelSubsystem;
+import frc.robot.subsystems.VariableHoodSubsystem;
 
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -53,6 +56,8 @@ public class RobotContainer {
     private final TurretSubsystem turret = new TurretSubsystem(() -> drivetrain.getState().Pose.getRotation());
     private final IntakeSubsystem intake = new IntakeSubsystem();
     private final PivotSubsystem pivot = new PivotSubsystem();
+    private final FlywheelSubsystem flywheel = new FlywheelSubsystem();
+    private final VariableHoodSubsystem hood = new VariableHoodSubsystem();
 
     /* Path follower */
     private final SendableChooser<Command> autoChooser;
@@ -113,6 +118,7 @@ public class RobotContainer {
         configureTurretBindings();
         configureIntakeBindings();
         configurePivotBindings();
+        configureShooterBindings();
     }
 
 
@@ -176,8 +182,8 @@ private void configureIntakeBindings() {
 
 private void configurePivotBindings() {
         // ── Pivot Control ───────────────────────────────────────────────────────
-        
-        // Using Right Bumper + A to Open the pivot 
+
+        // Using Right Bumper + A to Open the pivot
         joystick.rightBumper().and(joystick.a())
             .onTrue(Commands.runOnce(pivot::open, pivot));
 
@@ -187,6 +193,38 @@ private void configurePivotBindings() {
 
         // Optional: If you prefer to use the YAMS setAngleCommand directly
         // joystick.povUp().onTrue(pivot.setAngleCommand(90.0));
+    }
+
+    private void configureShooterBindings() {
+        // ── Flywheel Control ──────────────────────────────────────────────────────
+
+        // Left Stick + X: Start flywheel at standard shooting speed
+        joystick.leftStick().and(joystick.x())
+            .whileTrue(Commands.run(flywheel::shoot, flywheel))
+            .onFalse(Commands.runOnce(flywheel::stop, flywheel));
+
+        // Left Stick + Y: Warm up flywheel (75% speed)
+        joystick.leftStick().and(joystick.y())
+            .whileTrue(Commands.run(flywheel::warmUp, flywheel))
+            .onFalse(Commands.runOnce(flywheel::stop, flywheel));
+
+        // Left Stick + B: Stop flywheel
+        joystick.leftStick().and(joystick.b())
+            .onTrue(Commands.runOnce(flywheel::stop, flywheel));
+
+        // ── Hood Control ──────────────────────────────────────────────────────────
+
+        // Right Stick + A: Set hood to starting angle
+        joystick.rightStick().and(joystick.a())
+            .onTrue(Commands.runOnce(hood::setStartingAngle, hood));
+
+        // Right Stick + Y: Set hood to max angle
+        joystick.rightStick().and(joystick.y())
+            .onTrue(Commands.runOnce(hood::setMaxAngle, hood));
+
+        // Right Stick + B: Set hood to mid angle (midpoint between min and max)
+        joystick.rightStick().and(joystick.b())
+            .onTrue(hood.setAngleCommand((HOOD_STARTING_ANGLE_DEG + HOOD_MAX_ANGLE_DEG) / 2.0));
     }
 
     public Command getAutonomousCommand() {

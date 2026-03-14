@@ -120,4 +120,71 @@ public final class Constants {
         // ── Control ───────────────────────────────────────────────────────────
         public static final double AT_TARGET_TOLERANCE_DEG = 1.0;
     }
+
+    public static final class ShooterConstants {
+
+        // ── CAN ───────────────────────────────────────────────────────────────
+        public static final int    LEFT_FLYWHEEL_MOTOR_ID  = 41;
+        public static final int    RIGHT_FLYWHEEL_MOTOR_ID = 42;
+        public static final int    HOOD_MOTOR_ID           = 43;
+        public static final String CANBUS                  = "rio";
+
+        // ── Flywheel Gearing & Kinematics ─────────────────────────────────────
+        public static final double FLYWHEEL_GEAR_RATIO = 1.0; // 1:1 direct drive
+
+        // ── Hood Gearing & Kinematics ─────────────────────────────────────────
+        // (20/48) * (15/30) * (10/187)
+        public static final double HOOD_GEAR_RATIO = (20.0 / 48.0) * (15.0 / 30.0) * (10.0 / 187.0); // ≈ 1/89.76
+
+        // ── Flywheel Speeds & Limits ──────────────────────────────────────────
+        public static final double STANDARD_SHOOT_RPM = 5000.0;
+        public static final double WARM_UP_RPM        = 3750.0; // 75% of standard
+
+        // ── Hood Angle Limits (mechanism degrees) ─────────────────────────────
+        public static final double HOOD_STARTING_ANGLE_DEG = 18.2;
+        public static final double HOOD_MAX_TRAVEL_DEG     = 38.0;
+        public static final double HOOD_MIN_ANGLE_DEG      = HOOD_STARTING_ANGLE_DEG;
+        public static final double HOOD_MAX_ANGLE_DEG      = HOOD_STARTING_ANGLE_DEG + HOOD_MAX_TRAVEL_DEG; // 56.2°
+
+        // ── Flywheel Motor Inverts ────────────────────────────────────────────
+        public static final boolean LEFT_FLYWHEEL_INVERTED  = false;
+        public static final boolean RIGHT_FLYWHEEL_INVERTED = true; // Opposite of leader
+
+        // ── Hood Motor Settings ───────────────────────────────────────────────
+        public static final boolean HOOD_MOTOR_INVERTED = false;
+
+        // ── Current Limits (A) ────────────────────────────────────────────────
+        public static final double FLYWHEEL_SUPPLY_CURRENT_LIMIT = 60.0;
+        public static final double FLYWHEEL_STATOR_CURRENT_LIMIT = 80.0;
+        public static final double HOOD_SUPPLY_CURRENT_LIMIT     = 40.0;
+        public static final double HOOD_STATOR_CURRENT_LIMIT     = 60.0;
+
+        // ── Flywheel PID / Feedforward ────────────────────────────────────────
+        public static final double FLYWHEEL_kP = 0.1;  // ⚠️ tune on hardware
+        public static final double FLYWHEEL_kI = 0.0;
+        public static final double FLYWHEEL_kD = 0.0;
+        public static final double FLYWHEEL_kS = 0.1;  // ⚠️ tune on hardware
+        public static final double FLYWHEEL_kV = 0.12; // ⚠️ tune on hardware
+        public static final double FLYWHEEL_kA = 0.0;
+
+        // ── Hood PID / Feedforward ────────────────────────────────────────────
+        public static final double HOOD_kP = 0.05; // ⚠️ tune on hardware
+        public static final double HOOD_kI = 0.0;
+        public static final double HOOD_kD = 0.0;
+        public static final double HOOD_kS = 0.0;  // ⚠️ static friction V — tune on hardware
+        public static final double HOOD_kG = 0.0;  // ⚠️ gravity V — tune on hardware
+        public static final double HOOD_kV = 0.0;  // ⚠️ velocity V/(rad/s) — tune on hardware
+
+        // ── Hood Motion Constraints ───────────────────────────────────────────
+        public static final double HOOD_MAX_VEL_DEG_PER_SEC    = 180.0; // ⚠️ tune on hardware
+        public static final double HOOD_MAX_ACCEL_DEG_PER_SEC2 = 360.0; // ⚠️ tune on hardware
+
+        // ── Hood Physical Parameters (simulation accuracy) ────────────────────
+        public static final double HOOD_ARM_LENGTH_METERS = 0.25; // ⚠️ estimate — measure actual
+        public static final double HOOD_ARM_MASS_KG       = 0.8;  // ⚠️ estimate — weigh actual
+
+        // ── Control Tolerances ────────────────────────────────────────────────
+        public static final double FLYWHEEL_AT_SPEED_TOLERANCE_RPM = 100.0;
+        public static final double HOOD_AT_TARGET_TOLERANCE_DEG    = 1.0;
+    }
 }
