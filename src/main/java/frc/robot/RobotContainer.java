@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.PivotSubsystem;
 
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -51,7 +52,7 @@ public class RobotContainer {
 
     private final TurretSubsystem turret = new TurretSubsystem(() -> drivetrain.getState().Pose.getRotation());
     private final IntakeSubsystem intake = new IntakeSubsystem();
-
+    private final PivotSubsystem pivot = new PivotSubsystem();
 
     /* Path follower */
     private final SendableChooser<Command> autoChooser;
@@ -111,6 +112,7 @@ public class RobotContainer {
 
         configureTurretBindings();
         configureIntakeBindings();
+        configurePivotBindings();
     }
 
 
@@ -170,23 +172,22 @@ private void configureIntakeBindings() {
         .whileTrue(Commands.run(intake::outtake, intake))
         .onFalse(Commands.runOnce(intake::stopRollers, intake));
 
-    // ── Pivot State Control (gated with BACK to avoid accidental conflict) ─
-    joystick.back().and(joystick.povUp())
-        .onTrue(Commands.runOnce(intake::open, intake));
-
-    joystick.back().and(joystick.povDown())
-        .onTrue(Commands.runOnce(intake::close, intake));
-
-    joystick.back().and(joystick.povLeft())
-        .onTrue(Commands.runOnce(intake::stopPivot, intake));
-
-    // Emergency stop both intake and pivot.
-    joystick.back().and(joystick.rightTrigger())
-        .onTrue(Commands.runOnce(() -> {
-            intake.stopRollers();
-            intake.stopPivot();
-        }, intake));
 }
+
+private void configurePivotBindings() {
+        // ── Pivot Control ───────────────────────────────────────────────────────
+        
+        // Using Right Bumper + A to Open the pivot 
+        joystick.rightBumper().and(joystick.a())
+            .onTrue(Commands.runOnce(pivot::open, pivot));
+
+        // Using Right Bumper + B to Close the pivot
+        joystick.rightBumper().and(joystick.b())
+            .onTrue(Commands.runOnce(pivot::close, pivot));
+
+        // Optional: If you prefer to use the YAMS setAngleCommand directly
+        // joystick.povUp().onTrue(pivot.setAngleCommand(90.0));
+    }
 
     public Command getAutonomousCommand() {
         /* Run the path selected from the auto chooser */
