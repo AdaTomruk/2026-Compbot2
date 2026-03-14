@@ -9,6 +9,12 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
+import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.util.Color;
+import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -26,9 +32,37 @@ public class VariableHoodSubsystem extends SubsystemBase {
     private final MotionMagicVoltage motionMagicRequest = new MotionMagicVoltage(0).withEnableFOC(true);
     private final NeutralOut neutralRequest = new NeutralOut();
 
+    // ── Mechanism2d ───────────────────────────────────────────────────────────
+    private final Mechanism2d hoodMech;
+    private final MechanismLigament2d hoodArm;
+    private final MechanismLigament2d targetArm;
+
+    // ── State Tracking ────────────────────────────────────────────────────────
+    private double targetAngleDegrees = HOOD_STARTING_ANGLE_DEG;
+
     public VariableHoodSubsystem() {
         hoodMotor = new TalonFX(HOOD_MOTOR_ID, CANBUS);
         configureMotor();
+
+        // ── Mechanism2d Setup ─────────────────────────────────────────────────
+        // 3x3 canvas for hood angle visualization
+        hoodMech = new Mechanism2d(3, 3);
+        MechanismRoot2d root = hoodMech.getRoot("Hood", 1.5, 0.5);
+
+        // Grey reference line at 0 degrees (horizontal)
+        root.append(new MechanismLigament2d("Reference", 0.5, 0, 2, new Color8Bit(100, 100, 100)));
+
+        // Orange arm - actual hood angle
+        hoodArm = root.append(
+            new MechanismLigament2d("HoodAngle", 1.0, HOOD_STARTING_ANGLE_DEG, 6, new Color8Bit(Color.kOrange))
+        );
+
+        // Cyan arm - target hood angle
+        targetArm = root.append(
+            new MechanismLigament2d("TargetAngle", 0.7, HOOD_STARTING_ANGLE_DEG, 3, new Color8Bit(Color.kCyan))
+        );
+
+        SmartDashboard.putData("Hood/Mechanism2d", hoodMech);
     }
 
     private void configureMotor() {
@@ -81,7 +115,32 @@ public class VariableHoodSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        // Telemetry is handled by Phoenix signals
+        // Get current position and velocity
+        double currentAngleDeg = getAngleDegrees();
+        double velocityRPS = hoodMotor.getVelocity().getValueAsDouble();
+        double velocityDegPerSec = velocityRPS * 360.0;
+
+        // Update Mechanism2d visualization
+        hoodArm.setAngle(currentAngleDeg);
+        targetArm.setAngle(targetAngleDegrees);
+
+        // SmartDashboard telemetry
+        SmartDashboard.putNumber("Hood/Current_Angle_Deg", currentAngleDeg);
+        SmartDashboard.putNumber("Hood/Target_Angle_Deg", targetAngleDegrees);
+        SmartDashboard.putNumber("Hood/Angle_Error_Deg", targetAngleDegrees - currentAngleDeg);
+        SmartDashboard.putNumber("Hood/Velocity_DegPerSec", velocityDegPerSec);
+        SmartDashboard.putNumber("Hood/Position_Rotations", hoodMotor.getPosition().getValueAsDouble());
+
+        SmartDashboard.putNumber("Hood/SupplyCurrent_A",
+            hoodMotor.getSupplyCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Hood/StatorCurrent_A",
+            hoodMotor.getStatorCurrent().getValueAsDouble());
+        SmartDashboard.putNumber("Hood/ClosedLoop_Error",
+            hoodMotor.getClosedLoopError().getValueAsDouble());
+
+        SmartDashboard.putBoolean("Hood/At_Target", atTargetAngle(targetAngleDegrees));
+        SmartDashboard.putBoolean("Hood/At_Starting_Angle", atStartingAngle());
+        SmartDashboard.putBoolean("Hood/At_Max_Angle", atMaxAngle());
     }
 
     // ── Hood Control ──────────────────────────────────────────────────────────
@@ -98,6 +157,7 @@ public class VariableHoodSubsystem extends SubsystemBase {
 
     /** Sets hood to a specific angle in degrees. */
     public void setAngle(double degrees) {
+        targetAngleDegrees = degrees;
         double rotations = degrees / 360.0;
         hoodMotor.setControl(motionMagicRequest.withPosition(rotations));
     }
