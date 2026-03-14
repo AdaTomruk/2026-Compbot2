@@ -115,9 +115,9 @@ public class RobotContainer {
 
         drivetrain.registerTelemetry(logger::telemeterize);
 
-        configureTurretBindings();
+        //configureTurretBindings();
         configureIntakeBindings();
-        configurePivotBindings();
+        //configurePivotBindings();
         configureShooterBindings();
     }
 
@@ -199,31 +199,31 @@ private void configurePivotBindings() {
         // ── Flywheel Control ──────────────────────────────────────────────────────
 
         // Left Stick + X: Start flywheel at standard shooting speed
-        joystick.leftStick().and(joystick.x())
+        joystick.leftBumper().and(joystick.x())
             .whileTrue(Commands.run(flywheel::shoot, flywheel))
             .onFalse(Commands.runOnce(flywheel::stop, flywheel));
 
         // Left Stick + Y: Warm up flywheel (75% speed)
-        joystick.leftStick().and(joystick.y())
+        joystick.leftBumper().and(joystick.y())
             .whileTrue(Commands.run(flywheel::warmUp, flywheel))
             .onFalse(Commands.runOnce(flywheel::stop, flywheel));
 
         // Left Stick + B: Stop flywheel
-        joystick.leftStick().and(joystick.b())
+        joystick.leftBumper().and(joystick.b())
             .onTrue(Commands.runOnce(flywheel::stop, flywheel));
 
         // ── Hood Control ──────────────────────────────────────────────────────────
 
         // Right Stick + A: Set hood to starting angle
-        joystick.rightStick().and(joystick.a())
+        joystick.rightBumper().and(joystick.a())
             .onTrue(Commands.runOnce(hood::setStartingAngle, hood));
 
         // Right Stick + Y: Set hood to max angle
-        joystick.rightStick().and(joystick.y())
+        joystick.rightBumper().and(joystick.y())
             .onTrue(Commands.runOnce(hood::setMaxAngle, hood));
 
         // Right Stick + B: Set hood to mid angle (midpoint between min and max)
-        joystick.rightStick().and(joystick.b())
+        joystick.rightBumper().and(joystick.b())
             .onTrue(hood.setAngleCommand((HOOD_STARTING_ANGLE_DEG + HOOD_MAX_ANGLE_DEG) / 2.0));
     }
 

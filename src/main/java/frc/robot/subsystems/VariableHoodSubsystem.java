@@ -128,6 +128,10 @@ public class VariableHoodSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Hood/Current_Angle_Deg", currentAngleDeg);
         SmartDashboard.putNumber("Hood/Target_Angle_Deg", targetAngleDegrees);
         SmartDashboard.putNumber("Hood/Angle_Error_Deg", targetAngleDegrees - currentAngleDeg);
+        SmartDashboard.putNumber("Hood/Current_Angle_Normalized",
+            (currentAngleDeg - HOOD_MIN_ANGLE_DEG) / (HOOD_MAX_ANGLE_DEG - HOOD_MIN_ANGLE_DEG));
+        SmartDashboard.putNumber("Hood/Target_Angle_Normalized",
+            (targetAngleDegrees - HOOD_MIN_ANGLE_DEG) / (HOOD_MAX_ANGLE_DEG - HOOD_MIN_ANGLE_DEG));
         SmartDashboard.putNumber("Hood/Velocity_DegPerSec", velocityDegPerSec);
         SmartDashboard.putNumber("Hood/Position_Rotations", hoodMotor.getPosition().getValueAsDouble());
 
@@ -157,8 +161,9 @@ public class VariableHoodSubsystem extends SubsystemBase {
 
     /** Sets hood to a specific angle in degrees. */
     public void setAngle(double degrees) {
-        targetAngleDegrees = degrees;
-        double rotations = degrees / 360.0;
+        double clampedDegrees = Math.max(HOOD_MIN_ANGLE_DEG, Math.min(HOOD_MAX_ANGLE_DEG, degrees));
+        targetAngleDegrees = clampedDegrees;
+        double rotations = clampedDegrees / 360.0;
         hoodMotor.setControl(motionMagicRequest.withPosition(rotations));
     }
 

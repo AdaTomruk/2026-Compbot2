@@ -39,6 +39,8 @@ public class FlywheelSubsystem extends SubsystemBase {
 
     // ── State Tracking ────────────────────────────────────────────────────────
     private double targetRPM = 0.0;
+    private double leftArrowAngleDeg = 0.0;
+    private double rightArrowAngleDeg = 0.0;
 
     public FlywheelSubsystem() {
         // ── Motor Initialization ──────────────────────────────────────────────
@@ -135,18 +137,27 @@ public class FlywheelSubsystem extends SubsystemBase {
         double rightRPM = rightRPS * 60.0;
         double avgRPM = (leftRPM + rightRPM) / 2.0;
 
-        // Update Mechanism2d visualization
-        // Scale speed to 0-1 length (max RPM = 6000 -> length 1.0)
+    // Visualization fallback: in sim/disabled states velocity sensors may stay near 0
+    // while a setpoint is still active.
+    double epsilonRPM = 25.0;
+    boolean usingSetpointFallback = Math.abs(avgRPM) < epsilonRPM && Math.abs(targetRPM) > epsilonRPM;
+    double vizLeftRPM = usingSetpointFallback ? targetRPM : leftRPM;
+    double vizRightRPM = usingSetpointFallback ? targetRPM : rightRPM;
+
+    // Update Mechanism2d visualization
+    // Scale speed to 0-1 length (max RPM = 6000 -> length 1.0)
         double maxRPMForDisplay = 6000.0;
-        leftFlywheelArrow.setLength(Math.min(leftRPM / maxRPMForDisplay, 1.0));
-        rightFlywheelArrow.setLength(Math.min(rightRPM / maxRPMForDisplay, 1.0));
-        targetSpeedArrow.setLength(Math.min(targetRPM / maxRPMForDisplay, 1.0));
+    leftFlywheelArrow.setLength(Math.max(0.0, Math.min(Math.abs(vizLeftRPM) / maxRPMForDisplay, 1.0)));
+    rightFlywheelArrow.setLength(Math.max(0.0, Math.min(Math.abs(vizRightRPM) / maxRPMForDisplay, 1.0)));
+    targetSpeedArrow.setLength(Math.max(0.0, Math.min(Math.abs(targetRPM) / maxRPMForDisplay, 1.0)));
 
         // Rotate arrows to show spinning (visual effect)
-        double leftAngle = (leftRPS * 360.0 * 0.02) % 360.0; // 20ms period
-        double rightAngle = (rightRPS * 360.0 * 0.02) % 360.0;
-        leftFlywheelArrow.setAngle(leftAngle);
-        rightFlywheelArrow.setAngle(rightAngle);
+    double vizLeftRPS = vizLeftRPM / 60.0;
+    double vizRightRPS = vizRightRPM / 60.0;
+    leftArrowAngleDeg = (leftArrowAngleDeg + (vizLeftRPS * 360.0 * 0.02)) % 360.0; // 20ms period
+    rightArrowAngleDeg = (rightArrowAngleDeg + (vizRightRPS * 360.0 * 0.02)) % 360.0;
+    leftFlywheelArrow.setAngle(leftArrowAngleDeg);
+    rightFlywheelArrow.setAngle(rightArrowAngleDeg);
 
         // SmartDashboard telemetry
         SmartDashboard.putNumber("Flywheel/Left_RPM", leftRPM);
@@ -154,6 +165,11 @@ public class FlywheelSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Flywheel/Average_RPM", avgRPM);
         SmartDashboard.putNumber("Flywheel/Target_RPM", targetRPM);
         SmartDashboard.putNumber("Flywheel/RPM_Error", targetRPM - avgRPM);
+    SmartDashboard.putBoolean("Flywheel/Viz_Using_Setpoint_Fallback", usingSetpointFallback);
+    SmartDashboard.putNumber("Flywheel/Viz_Left_RPM", vizLeftRPM);
+    SmartDashboard.putNumber("Flywheel/Viz_Right_RPM", vizRightRPM);
+    SmartDashboard.putNumber("Flywheel/Viz_Left_Angle_Deg", leftArrowAngleDeg);
+    SmartDashboard.putNumber("Flywheel/Viz_Right_Angle_Deg", rightArrowAngleDeg);
 
         SmartDashboard.putNumber("Flywheel/Left_SupplyCurrent_A",
             leftFlywheelMotor.getSupplyCurrent().getValueAsDouble());
