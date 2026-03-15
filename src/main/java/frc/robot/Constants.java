@@ -120,6 +120,13 @@ public final class Constants {
         public static final double AT_TARGET_TOLERANCE_DEG = 1.0;
     }
 
+    public static final class FeederConstants {
+        public static final int FEEDER_MOTOR_ID = 36; // Change this to your actual CAN ID
+        public static final double FEEDER_SPEED = 0.6; // Speed for moving the ball up
+        public static final boolean MOTOR_INVERTED = false;
+        public static final int CURRENT_LIMIT = 30; // Amps
+    }
+
     public static final class ShooterConstants {
 
         // ── CAN ───────────────────────────────────────────────────────────────

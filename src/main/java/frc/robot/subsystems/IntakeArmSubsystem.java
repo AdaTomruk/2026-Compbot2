@@ -4,14 +4,13 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.SparkBase;
-import com.revrobotics.spark.SparkBase.PersistMode;
-import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkClosedLoopController;
-import com.revrobotics.spark.SparkClosedLoopController.ArbFFUnits;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.PersistMode;
+import com.revrobotics.ResetMode;
 
 import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -188,12 +187,11 @@ public class IntakeArmSubsystem extends SubsystemBase {
         double velRad = Math.toRadians(pivotCurState.velocity);
         double arbFF = pivotFeedforward.calculate(posRad, velRad);
 
-        pivotPIDController.setReference(
+        pivotPIDController.setSetpoint(
             pivotCurState.position,
             SparkBase.ControlType.kPosition,
             ClosedLoopSlot.kSlot0,
-            arbFF,
-            ArbFFUnits.kVoltage);
+            arbFF);
     }
 
     // --- Periodic ---

@@ -14,11 +14,14 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
 import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
 import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
@@ -28,6 +31,7 @@ import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 import frc.robot.Constants.TurretConstants;
+import frc.robot.ShootingConstants;
 import yams.units.EasyCRT;
 import yams.units.EasyCRTConfig;
 
@@ -51,6 +55,7 @@ public class TurretSubsystem extends SubsystemBase {
 
     // ── Chassis Heading Supplier ───────────────────────────────────────────────
     private final Supplier<Rotation2d> chassisHeadingSupplier;
+    private final Supplier<Pose2d>     robotPoseSupplier;
 
     // ── Control Requests ───────────────────────────────────────────────────────
     private final MotionMagicVoltage motionMagicRequest = new MotionMagicVoltage(0).withEnableFOC(true);
@@ -64,6 +69,7 @@ public class TurretSubsystem extends SubsystemBase {
     private final Mechanism2d         turretMech;
     private final MechanismLigament2d turretArrow;
     private final MechanismLigament2d turretTargetArrow;
+    private final Field2d             turretField;
 
     // ── Simulation ────────────────────────────────────────────────────────────
     private DCMotorSim turretMotorSim;
@@ -72,8 +78,10 @@ public class TurretSubsystem extends SubsystemBase {
      * @param chassisHeadingSupplier supplier of the robot's current field-relative heading
      *                               Pass: () -> drivetrain.getState().Pose.getRotation()
      */
-    public TurretSubsystem(Supplier<Rotation2d> chassisHeadingSupplier) {
+    public TurretSubsystem(Supplier<Rotation2d> chassisHeadingSupplier,
+                           Supplier<Pose2d> robotPoseSupplier) {
         this.chassisHeadingSupplier = chassisHeadingSupplier;
+        this.robotPoseSupplier       = robotPoseSupplier;
 
         // ── Motor ──────────────────────────────────────────────────────────────
         turretMotor = new TalonFX(TurretConstants.TURN_MOTOR_ID, TurretConstants.CANBUS);
@@ -149,6 +157,9 @@ public class TurretSubsystem extends SubsystemBase {
         ));
 
         SmartDashboard.putData("Turret/Mechanism2d", turretMech);
+
+    turretField = new Field2d();
+    SmartDashboard.putData("Turret/Field", turretField);
 
         // ── Simulation ─────────────────────────────────────────────────────────
         if (RobotBase.isSimulation()) {
@@ -444,6 +455,15 @@ public class TurretSubsystem extends SubsystemBase {
 
         turretArrow.setAngle(90 - currentDeg);      // orange — actual
         turretTargetArrow.setAngle(90 - targetDeg); // cyan   — target
+
+        Pose2d robotPose = robotPoseSupplier.get();
+        Transform2d robotToTurret = new Transform2d(
+            ShootingConstants.ROBOT_TO_TURRET.getTranslation().toTranslation2d(),
+            Rotation2d.kZero);
+        Pose2d turretBasePose = robotPose.transformBy(robotToTurret);
+        Rotation2d targetHeading = robotPose.getRotation().plus(Rotation2d.fromDegrees(targetDeg));
+        Pose2d turretTargetPose = new Pose2d(turretBasePose.getTranslation(), targetHeading);
+        turretField.getObject("TargetHeading").setPose(turretTargetPose);
 
         // 4. ── Telemetry ──────────────────────────────────────────────────────────
         SmartDashboard.putNumber ("Turret/Mechanism_Degrees",         currentDeg);

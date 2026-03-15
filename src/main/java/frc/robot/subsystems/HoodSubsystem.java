@@ -10,6 +10,7 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -126,8 +127,14 @@ public class HoodSubsystem extends SubsystemBase {
             * HoodConstants.HOOD_MOTOR_TO_MECHANISM_RATIO
             / (2.0 * Math.PI);
 
+        // ==========================================================
+        // FIX IS HERE: Subtract the resting angle so the simulated 
+        // motor boots at 0 rotations, exactly like the real hardware!
+        // ==========================================================
+        double simulatedMotorAngleRads = hoodArmSim.getAngleRads() - Math.toRadians(HoodConstants.HOOD_MIN_ANGLE_DEG);
+        
         // arm radians → motor rotations (× gear ratio / 2π)
-        double motorPositionRot = (hoodArmSim.getAngleRads() / (2.0 * Math.PI))
+        double motorPositionRot = (simulatedMotorAngleRads / (2.0 * Math.PI))
             * HoodConstants.HOOD_MOTOR_TO_MECHANISM_RATIO;
 
         // Push back into TalonFX sim — always raw rotor values here
@@ -167,14 +174,19 @@ public class HoodSubsystem extends SubsystemBase {
 
     private void applyPendingSeed() {
         if (pendingSeedAngleDeg == null) {
-            return;
-        }
+        return;
+    }
+
+    // NEW: Wait 250ms on boot for CAN signals to stabilize
+    if (Timer.getFPGATimestamp() < 0.25) {
+        return; 
+    }
 
     var positionSignal = hoodMotor.getPosition();
-        StatusCode status = BaseStatusSignal.refreshAll(positionSignal);
-        if (!status.isOK()) {
-            return;
-        }
+    StatusCode status = BaseStatusSignal.refreshAll(positionSignal);
+    if (!status.isOK()) {
+        return;
+    }
     double rawAngleDeg = positionSignal.getValueAsDouble() * 360.0;
 
     sensorOffsetDeg = HoodAngleUtil.computeSensorOffsetDeg(pendingSeedAngleDeg, rawAngleDeg);

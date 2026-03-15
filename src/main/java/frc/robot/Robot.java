@@ -22,6 +22,7 @@ public class Robot extends TimedRobot {
         .withJoystickReplay();
 
     private final boolean kUseLimelight = true;
+    private boolean m_seededInAutonomous = false;
 
     public Robot() {
         m_robotContainer = new RobotContainer();
@@ -54,7 +55,9 @@ public class Robot extends TimedRobot {
     }
 
     @Override
-    public void disabledInit() {}
+    public void disabledInit() {
+        m_seededInAutonomous = false;
+    }
 
     @Override
     public void disabledPeriodic() {}
@@ -64,6 +67,8 @@ public class Robot extends TimedRobot {
 
     @Override
     public void autonomousInit() {
+        m_robotContainer.turret.seedMotorFromCRT();
+        m_seededInAutonomous = true;
         m_autonomousCommand = m_robotContainer.getAutonomousCommand();
 
         if (m_autonomousCommand != null) {
@@ -82,7 +87,9 @@ public class Robot extends TimedRobot {
         if (m_autonomousCommand != null) {
             CommandScheduler.getInstance().cancel(m_autonomousCommand);
         }
-        m_robotContainer.turret.seedMotorFromCRT();
+        if (!m_seededInAutonomous) {
+            m_robotContainer.turret.seedMotorFromCRT();
+        }
     }
 
     @Override

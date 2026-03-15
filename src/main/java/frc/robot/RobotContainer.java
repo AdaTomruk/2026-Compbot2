@@ -18,11 +18,14 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.FlywheelSubsystem;
+import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HoodSubsystem;
 import frc.robot.subsystems.IntakeArmSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.generated.TunerConstants;
+
+import frc.robot.commands.AutoAimAndShootCommand; // Import your new command
 
 public class RobotContainer {
 
@@ -43,11 +46,15 @@ public class RobotContainer {
 
     // --- Subsystems ---
     public  final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-    public final TurretSubsystem         turret     = new TurretSubsystem(() -> drivetrain.getState().Pose.getRotation());
+    public final TurretSubsystem         turret     = new TurretSubsystem(
+        () -> drivetrain.getState().Pose.getRotation(),
+        () -> drivetrain.getState().Pose
+    );
     public final IntakeSubsystem         intake     = new IntakeSubsystem();
     public final IntakeArmSubsystem      intakeArm  = new IntakeArmSubsystem();
     public final FlywheelSubsystem       flywheel   = new FlywheelSubsystem();
     public final HoodSubsystem           hood       = new HoodSubsystem();
+    public final FeederSubsystem         feeder     = new FeederSubsystem();
 
     // --- Auto ---
     private final SendableChooser<Command> autoChooser;
@@ -84,7 +91,13 @@ public class RobotContainer {
         configureDriveBindings();
         configureTurretBindings();
         configureIntakeBindings();
+        configureFeederBindings();
         configureShooterBindings();
+
+        joystick.rightTrigger().whileTrue(
+            new AutoAimAndShootCommand(drivetrain, turret, hood, flywheel, feeder)
+        );
+
     }
 
     private void configureDriveBindings() {
@@ -103,6 +116,7 @@ public class RobotContainer {
         joystick.back().onTrue(Commands.runOnce(turret::stop, turret));
     }
 
+
     private void configureIntakeBindings() {
         // Toggle intake arm open/close
         joystick.y().onTrue(Commands.runOnce(intakeArm::toggleArm, intakeArm));
@@ -116,6 +130,18 @@ public class RobotContainer {
         joystick.rightTrigger()
             .whileTrue(Commands.run(intake::outtake, intake))
             .onFalse(Commands.runOnce(intake::stopRollers, intake));
+    }
+
+    private void configureFeederBindings() {
+        // Run feeder forward (hold)
+        joystick.start()
+            .whileTrue(Commands.run(feeder::runFeeder, feeder))
+            .onFalse(Commands.runOnce(feeder::stop, feeder));
+
+        // Run feeder reverse (hold) to clear jams
+        joystick.povDown()
+            .whileTrue(Commands.run(feeder::reverseFeeder, feeder))
+            .onFalse(Commands.runOnce(feeder::stop, feeder));
     }
 
     private void configureShooterBindings() {
@@ -144,10 +170,6 @@ public class RobotContainer {
             Constants.HoodConstants.HOOD_MIN_ANGLE_DEG);
         hood.setAngle(angle);
     }, hood));
-
-    // Re-seed hood position at minimum angle (move to 18.2° before pressing)
-    joystick.povDown().onTrue(Commands.runOnce(() ->
-        hood.seedPositionDeg(Constants.HoodConstants.HOOD_MIN_ANGLE_DEG), hood));
 
 }
 
