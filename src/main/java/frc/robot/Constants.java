@@ -96,9 +96,9 @@ public final class Constants {
         public static final double kA = 0.0;  // ⚠️ leave at 0 until speed stage 3+
 
         // ── MotionMagic ───────────────────────────────────────────────────────
-        public static final double TURRET_CRUISE_DEG_PER_SEC = 180.0; // ⚠️ increase per speed guide
-        public static final double TURRET_ACCEL_DEG_PER_SEC2 = 360.0; // always 2× cruise
-        public static final double TURRET_JERK_DEG_PER_SEC3  = 1800.0; // always 10× cruise
+        public static final double TURRET_CRUISE_DEG_PER_SEC = 45.0; // ⚠️ increase per speed guide
+        public static final double TURRET_ACCEL_DEG_PER_SEC2 = 90.0; // always 2× cruise
+        public static final double TURRET_JERK_DEG_PER_SEC3  = 450.0; // always 10× cruise
 
         public static final double MM_CRUISE_VELOCITY =
             (TURRET_CRUISE_DEG_PER_SEC / 360.0) * MOTOR_TO_MECHANISM_RATIO;

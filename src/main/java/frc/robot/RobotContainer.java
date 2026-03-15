@@ -43,11 +43,11 @@ public class RobotContainer {
 
     // --- Subsystems ---
     public  final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
-    private final TurretSubsystem         turret     = new TurretSubsystem(() -> drivetrain.getState().Pose.getRotation());
-    private final IntakeSubsystem         intake     = new IntakeSubsystem();
-    private final IntakeArmSubsystem      intakeArm  = new IntakeArmSubsystem();
-    private final FlywheelSubsystem       flywheel   = new FlywheelSubsystem();
-    private final HoodSubsystem           hood       = new HoodSubsystem();
+    public final TurretSubsystem         turret     = new TurretSubsystem(() -> drivetrain.getState().Pose.getRotation());
+    public final IntakeSubsystem         intake     = new IntakeSubsystem();
+    public final IntakeArmSubsystem      intakeArm  = new IntakeArmSubsystem();
+    public final FlywheelSubsystem       flywheel   = new FlywheelSubsystem();
+    public final HoodSubsystem           hood       = new HoodSubsystem();
 
     // --- Auto ---
     private final SendableChooser<Command> autoChooser;
@@ -145,9 +145,10 @@ public class RobotContainer {
         hood.setAngle(angle);
     }, hood));
 
-    // Reset hood to min angle
+    // Re-seed hood position at minimum angle (move to 18.2° before pressing)
     joystick.povDown().onTrue(Commands.runOnce(() ->
-        hood.setAngle(Constants.HoodConstants.HOOD_MIN_ANGLE_DEG), hood));
+        hood.seedPositionDeg(Constants.HoodConstants.HOOD_MIN_ANGLE_DEG), hood));
+
 }
 
     public Command getAutonomousCommand() {
