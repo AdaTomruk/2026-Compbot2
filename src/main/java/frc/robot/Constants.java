@@ -33,16 +33,16 @@ public final class Constants {
         // 15:1 AM Sport planetary + 24:15 timing belt = 24:1 overall
         public static final double PIVOT_GEAR_RATIO = 15.0 * (24.0 / 15.0); // = 24.0
 
-        // ── Pivot Angle Setpoints (mechanism degrees) ─────────────────────────
-        // Boot-zero convention: robot starts physically in Closed position.
-        public static final double PIVOT_CLOSED_ANGLE_DEG = 0.0;
-        public static final double PIVOT_OPEN_ANGLE_DEG   = (25.0 / PIVOT_GEAR_RATIO) * 360.0; // ≈ 375° ⚠️ verify on hardware
+    // ── Pivot Angle Setpoints (mechanism degrees) ─────────────────────────
+    // Boot-zero convention: robot starts physically in Closed position.
+    public static final double PIVOT_CLOSED_ANGLE_DEG = 0.0;
+    public static final double PIVOT_OPEN_ANGLE_DEG   = 90.0; // Mechanism degrees (verify on hardware)
 
         // ── Pivot Soft/Hard Limits (mechanism degrees) ────────────────────────
-        public static final double PIVOT_SOFT_MIN_ANGLE_DEG = -5.0;
-        public static final double PIVOT_SOFT_MAX_ANGLE_DEG = 380.0;
-        public static final double PIVOT_HARD_MIN_ANGLE_DEG = -10.0;
-        public static final double PIVOT_HARD_MAX_ANGLE_DEG = 390.0;
+    public static final double PIVOT_SOFT_MIN_ANGLE_DEG = -5.0;
+    public static final double PIVOT_SOFT_MAX_ANGLE_DEG = 95.0;
+    public static final double PIVOT_HARD_MIN_ANGLE_DEG = -10.0;
+    public static final double PIVOT_HARD_MAX_ANGLE_DEG = 100.0;
         public static final double PIVOT_AT_TARGET_TOLERANCE_DEG = 2.0;
 
         // ── YAMS Closed-Loop Gains (WPILib ProfiledPIDController in degrees) ──
@@ -132,9 +132,12 @@ public final class Constants {
         // ── Flywheel Gearing & Kinematics ─────────────────────────────────────
         public static final double FLYWHEEL_GEAR_RATIO = 1.0; // 1:1 direct drive
 
-        // ── Hood Gearing & Kinematics ─────────────────────────────────────────
-        // (20/48) * (15/30) * (10/187)
-        public static final double HOOD_GEAR_RATIO = (20.0 / 48.0) * (15.0 / 30.0) * (10.0 / 187.0); // ≈ 1/89.76
+    // ── Hood Gearing & Kinematics ─────────────────────────────────────────
+    // (20/48) * (15/30) * (10/187)
+    // Mechanism rotations per motor rotation.
+    public static final double HOOD_GEAR_RATIO = (20.0 / 48.0) * (15.0 / 32.0) * (10.0 / 187.0);
+    // Motor rotations per mechanism rotation (for CTRE SensorToMechanismRatio).
+    public static final double HOOD_MOTOR_TO_MECHANISM_RATIO = 1.0 / HOOD_GEAR_RATIO; // ≈ 89.76
 
         // ── Flywheel Speeds & Limits ──────────────────────────────────────────
         public static final double STANDARD_SHOOT_RPM = 5000.0;

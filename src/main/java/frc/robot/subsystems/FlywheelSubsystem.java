@@ -3,23 +3,21 @@ package frc.robot.subsystems;
 import static frc.robot.Constants.ShooterConstants.*;
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
-import edu.wpi.first.wpilibj.smartdashboard.Mechanism2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismLigament2d;
-import edu.wpi.first.wpilibj.smartdashboard.MechanismRoot2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.util.Color;
-import edu.wpi.first.wpilibj.util.Color8Bit;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
  * Flywheel shooter subsystem.
  * Controls dual Kraken X60 motors for shooting game pieces.
+ * Left motor is the leader; right motor follows automatically.
  */
 public class FlywheelSubsystem extends SubsystemBase {
 
@@ -28,19 +26,12 @@ public class FlywheelSubsystem extends SubsystemBase {
     private final TalonFX rightFlywheelMotor;
 
     // ── Control Requests ──────────────────────────────────────────────────────
-    private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withEnableFOC(true);
+    private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withEnableFOC(false);
     private final NeutralOut neutralRequest = new NeutralOut();
-
-    // ── Mechanism2d ───────────────────────────────────────────────────────────
-    private final Mechanism2d flywheelMech;
-    private final MechanismLigament2d leftFlywheelArrow;
-    private final MechanismLigament2d rightFlywheelArrow;
-    private final MechanismLigament2d targetSpeedArrow;
+    private final Follower followerRequest = new Follower(LEFT_FLYWHEEL_MOTOR_ID, MotorAlignmentValue.Opposed);
 
     // ── State Tracking ────────────────────────────────────────────────────────
     private double targetRPM = 0.0;
-    private double leftArrowAngleDeg = 0.0;
-    private double rightArrowAngleDeg = 0.0;
 
     public FlywheelSubsystem() {
         // ── Motor Initialization ──────────────────────────────────────────────
@@ -49,81 +40,45 @@ public class FlywheelSubsystem extends SubsystemBase {
 
         configureMotors();
 
-        // ── Mechanism2d Setup ─────────────────────────────────────────────────
-        // 4x3 canvas for dual flywheel visualization
-        flywheelMech = new Mechanism2d(4, 3);
-
-        // Left flywheel (positioned at x=1, y=1.5)
-        MechanismRoot2d leftRoot = flywheelMech.getRoot("LeftFlywheel", 1.0, 1.5);
-        leftFlywheelArrow = leftRoot.append(
-            new MechanismLigament2d("LeftSpeed", 0.0, 0, 8, new Color8Bit(Color.kOrange))
-        );
-
-        // Right flywheel (positioned at x=3, y=1.5)
-        MechanismRoot2d rightRoot = flywheelMech.getRoot("RightFlywheel", 3.0, 1.5);
-        rightFlywheelArrow = rightRoot.append(
-            new MechanismLigament2d("RightSpeed", 0.0, 0, 8, new Color8Bit(Color.kOrangeRed))
-        );
-
-        // Target speed indicator (center, x=2, y=1.5)
-        MechanismRoot2d targetRoot = flywheelMech.getRoot("Target", 2.0, 1.5);
-        targetSpeedArrow = targetRoot.append(
-            new MechanismLigament2d("TargetSpeed", 0.0, 90, 4, new Color8Bit(Color.kCyan))
-        );
-
-        SmartDashboard.putData("Flywheel/Mechanism2d", flywheelMech);
+        // Set right motor to follow the left (leader) motor
+        rightFlywheelMotor.setControl(followerRequest);
     }
 
     private void configureMotors() {
-        // ── Left Motor Configuration ──────────────────────────────────────────
-        TalonFXConfiguration leftConfig = new TalonFXConfiguration();
+        TalonFXConfiguration config = new TalonFXConfiguration();
 
-        // Motor output
-        leftConfig.MotorOutput.Inverted = LEFT_FLYWHEEL_INVERTED ?
-            InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
-        leftConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
+        // ── 1. Motor Output ───────────────────────────────────────────────────
+        config.MotorOutput
+            .withInverted(LEFT_FLYWHEEL_INVERTED ? 
+                InvertedValue.Clockwise_Positive : 
+                InvertedValue.CounterClockwise_Positive)
+            .withNeutralMode(NeutralModeValue.Coast);
 
-        // Current limits
-        leftConfig.CurrentLimits.SupplyCurrentLimit = FLYWHEEL_SUPPLY_CURRENT_LIMIT;
-        leftConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
-        leftConfig.CurrentLimits.StatorCurrentLimit = FLYWHEEL_STATOR_CURRENT_LIMIT;
-        leftConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+        // ── 2. Current Limits ─────────────────────────────────────────────────
+        config.CurrentLimits
+            .withSupplyCurrentLimit(FLYWHEEL_SUPPLY_CURRENT_LIMIT)
+            .withSupplyCurrentLimitEnable(true)
+            .withStatorCurrentLimit(FLYWHEEL_STATOR_CURRENT_LIMIT)
+            .withStatorCurrentLimitEnable(true);
 
-        // PID & Feedforward (Slot 0)
-        leftConfig.Slot0.kP = FLYWHEEL_kP;
-        leftConfig.Slot0.kI = FLYWHEEL_kI;
-        leftConfig.Slot0.kD = FLYWHEEL_kD;
-        leftConfig.Slot0.kS = FLYWHEEL_kS;
-        leftConfig.Slot0.kV = FLYWHEEL_kV;
-        leftConfig.Slot0.kA = FLYWHEEL_kA;
+        // ── 3. PID & Feedforward (Slot 0) ─────────────────────────────────────
+        config.Slot0
+            .withKP(FLYWHEEL_kP)
+            .withKI(FLYWHEEL_kI)
+            .withKD(FLYWHEEL_kD)
+            .withKS(FLYWHEEL_kS)
+            .withKV(FLYWHEEL_kV)
+            .withKA(FLYWHEEL_kA);
 
-        // Gear ratio (1:1 direct drive)
-        leftConfig.Feedback.SensorToMechanismRatio = FLYWHEEL_GEAR_RATIO;
+        // ── 4. Sensor Gearing ─────────────────────────────────────────────────
+        config.Feedback
+            .withSensorToMechanismRatio(FLYWHEEL_GEAR_RATIO);
 
-        leftFlywheelMotor.getConfigurator().apply(leftConfig);
-
-        // ── Right Motor Configuration (Follower) ──────────────────────────────
-        TalonFXConfiguration rightConfig = new TalonFXConfiguration();
-
-        rightConfig.MotorOutput.Inverted = RIGHT_FLYWHEEL_INVERTED ?
-            InvertedValue.Clockwise_Positive : InvertedValue.CounterClockwise_Positive;
-        rightConfig.MotorOutput.NeutralMode = NeutralModeValue.Coast;
-
-        rightConfig.CurrentLimits.SupplyCurrentLimit = FLYWHEEL_SUPPLY_CURRENT_LIMIT;
-        rightConfig.CurrentLimits.SupplyCurrentLimitEnable = true;
-        rightConfig.CurrentLimits.StatorCurrentLimit = FLYWHEEL_STATOR_CURRENT_LIMIT;
-        rightConfig.CurrentLimits.StatorCurrentLimitEnable = true;
-
-        rightConfig.Slot0.kP = FLYWHEEL_kP;
-        rightConfig.Slot0.kI = FLYWHEEL_kI;
-        rightConfig.Slot0.kD = FLYWHEEL_kD;
-        rightConfig.Slot0.kS = FLYWHEEL_kS;
-        rightConfig.Slot0.kV = FLYWHEEL_kV;
-        rightConfig.Slot0.kA = FLYWHEEL_kA;
-
-        rightConfig.Feedback.SensorToMechanismRatio = FLYWHEEL_GEAR_RATIO;
-
-        rightFlywheelMotor.getConfigurator().apply(rightConfig);
+        // ── 5. Apply Configurations ───────────────────────────────────────────
+        // We apply the exact same base config to both motors. 
+        // The Follower request (set to Opposed) handles the right motor's direction.
+        leftFlywheelMotor.getConfigurator().apply(config);
+        rightFlywheelMotor.getConfigurator().apply(config);
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -137,39 +92,12 @@ public class FlywheelSubsystem extends SubsystemBase {
         double rightRPM = rightRPS * 60.0;
         double avgRPM = (leftRPM + rightRPM) / 2.0;
 
-    // Visualization fallback: in sim/disabled states velocity sensors may stay near 0
-    // while a setpoint is still active.
-    double epsilonRPM = 25.0;
-    boolean usingSetpointFallback = Math.abs(avgRPM) < epsilonRPM && Math.abs(targetRPM) > epsilonRPM;
-    double vizLeftRPM = usingSetpointFallback ? targetRPM : leftRPM;
-    double vizRightRPM = usingSetpointFallback ? targetRPM : rightRPM;
-
-    // Update Mechanism2d visualization
-    // Scale speed to 0-1 length (max RPM = 6000 -> length 1.0)
-        double maxRPMForDisplay = 6000.0;
-    leftFlywheelArrow.setLength(Math.max(0.0, Math.min(Math.abs(vizLeftRPM) / maxRPMForDisplay, 1.0)));
-    rightFlywheelArrow.setLength(Math.max(0.0, Math.min(Math.abs(vizRightRPM) / maxRPMForDisplay, 1.0)));
-    targetSpeedArrow.setLength(Math.max(0.0, Math.min(Math.abs(targetRPM) / maxRPMForDisplay, 1.0)));
-
-        // Rotate arrows to show spinning (visual effect)
-    double vizLeftRPS = vizLeftRPM / 60.0;
-    double vizRightRPS = vizRightRPM / 60.0;
-    leftArrowAngleDeg = (leftArrowAngleDeg + (vizLeftRPS * 360.0 * 0.02)) % 360.0; // 20ms period
-    rightArrowAngleDeg = (rightArrowAngleDeg + (vizRightRPS * 360.0 * 0.02)) % 360.0;
-    leftFlywheelArrow.setAngle(leftArrowAngleDeg);
-    rightFlywheelArrow.setAngle(rightArrowAngleDeg);
-
         // SmartDashboard telemetry
         SmartDashboard.putNumber("Flywheel/Left_RPM", leftRPM);
         SmartDashboard.putNumber("Flywheel/Right_RPM", rightRPM);
         SmartDashboard.putNumber("Flywheel/Average_RPM", avgRPM);
         SmartDashboard.putNumber("Flywheel/Target_RPM", targetRPM);
         SmartDashboard.putNumber("Flywheel/RPM_Error", targetRPM - avgRPM);
-    SmartDashboard.putBoolean("Flywheel/Viz_Using_Setpoint_Fallback", usingSetpointFallback);
-    SmartDashboard.putNumber("Flywheel/Viz_Left_RPM", vizLeftRPM);
-    SmartDashboard.putNumber("Flywheel/Viz_Right_RPM", vizRightRPM);
-    SmartDashboard.putNumber("Flywheel/Viz_Left_Angle_Deg", leftArrowAngleDeg);
-    SmartDashboard.putNumber("Flywheel/Viz_Right_Angle_Deg", rightArrowAngleDeg);
 
         SmartDashboard.putNumber("Flywheel/Left_SupplyCurrent_A",
             leftFlywheelMotor.getSupplyCurrent().getValueAsDouble());
@@ -201,14 +129,14 @@ public class FlywheelSubsystem extends SubsystemBase {
         targetRPM = rpm;
         double rps = rpm / 60.0;
         leftFlywheelMotor.setControl(velocityRequest.withVelocity(rps));
-        rightFlywheelMotor.setControl(velocityRequest.withVelocity(rps));
+        // rightFlywheelMotor follows automatically
     }
 
     /** Stops the flywheel. */
     public void stop() {
         targetRPM = 0.0;
         leftFlywheelMotor.setControl(neutralRequest);
-        rightFlywheelMotor.setControl(neutralRequest);
+        // rightFlywheelMotor coasts with the leader
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────

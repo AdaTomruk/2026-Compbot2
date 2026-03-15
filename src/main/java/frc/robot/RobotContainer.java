@@ -26,9 +26,7 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
-import frc.robot.subsystems.PivotSubsystem;
 import frc.robot.subsystems.FlywheelSubsystem;
-import frc.robot.subsystems.VariableHoodSubsystem;
 
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
@@ -55,9 +53,7 @@ public class RobotContainer {
 
     private final TurretSubsystem turret = new TurretSubsystem(() -> drivetrain.getState().Pose.getRotation());
     private final IntakeSubsystem intake = new IntakeSubsystem();
-    private final PivotSubsystem pivot = new PivotSubsystem();
     private final FlywheelSubsystem flywheel = new FlywheelSubsystem();
-    private final VariableHoodSubsystem hood = new VariableHoodSubsystem();
 
     /* Path follower */
     private final SendableChooser<Command> autoChooser;
@@ -115,9 +111,11 @@ public class RobotContainer {
 
         drivetrain.registerTelemetry(logger::telemeterize);
 
-        //configureTurretBindings();
+
+        configureTurretBindings();
+        
         configureIntakeBindings();
-        //configurePivotBindings();
+
         configureShooterBindings();
     }
 
@@ -180,51 +178,25 @@ private void configureIntakeBindings() {
 
 }
 
-private void configurePivotBindings() {
-        // ── Pivot Control ───────────────────────────────────────────────────────
-
-        // Using Right Bumper + A to Open the pivot
-        joystick.rightBumper().and(joystick.a())
-            .onTrue(Commands.runOnce(pivot::open, pivot));
-
-        // Using Right Bumper + B to Close the pivot
-        joystick.rightBumper().and(joystick.b())
-            .onTrue(Commands.runOnce(pivot::close, pivot));
-
-        // Optional: If you prefer to use the YAMS setAngleCommand directly
-        // joystick.povUp().onTrue(pivot.setAngleCommand(90.0));
-    }
 
     private void configureShooterBindings() {
+        var shooterMode = joystick.rightStick();
+
         // ── Flywheel Control ──────────────────────────────────────────────────────
 
-        // Left Stick + X: Start flywheel at standard shooting speed
-        joystick.leftBumper().and(joystick.x())
+        // Right Stick + X: Start flywheel at standard shooting speed
+        shooterMode.and(joystick.x())
             .whileTrue(Commands.run(flywheel::shoot, flywheel))
             .onFalse(Commands.runOnce(flywheel::stop, flywheel));
 
-        // Left Stick + Y: Warm up flywheel (75% speed)
-        joystick.leftBumper().and(joystick.y())
+        // Right Stick + Y: Warm up flywheel (75% speed)
+        shooterMode.and(joystick.y())
             .whileTrue(Commands.run(flywheel::warmUp, flywheel))
             .onFalse(Commands.runOnce(flywheel::stop, flywheel));
 
-        // Left Stick + B: Stop flywheel
-        joystick.leftBumper().and(joystick.b())
+        // Right Stick + B: Stop flywheel
+        shooterMode.and(joystick.b())
             .onTrue(Commands.runOnce(flywheel::stop, flywheel));
-
-        // ── Hood Control ──────────────────────────────────────────────────────────
-
-        // Right Stick + A: Set hood to starting angle
-        joystick.rightBumper().and(joystick.a())
-            .onTrue(Commands.runOnce(hood::setStartingAngle, hood));
-
-        // Right Stick + Y: Set hood to max angle
-        joystick.rightBumper().and(joystick.y())
-            .onTrue(Commands.runOnce(hood::setMaxAngle, hood));
-
-        // Right Stick + B: Set hood to mid angle (midpoint between min and max)
-        joystick.rightBumper().and(joystick.b())
-            .onTrue(hood.setAngleCommand((HOOD_STARTING_ANGLE_DEG + HOOD_MAX_ANGLE_DEG) / 2.0));
     }
 
     public Command getAutonomousCommand() {
