@@ -71,7 +71,7 @@ public class AutoAimAndShootCommand extends Command {
 
         if (params.isValid()) {
             // 5. Update mechanism targets based on distance
-            turret.setHeading(params.turretAngleDegrees());
+            turret.setFieldHeading(params.turretAngleDegrees());
             hood.setAngle(params.hoodAngleDegrees());
             flywheel.setRPM(params.flywheelRPM());
 
