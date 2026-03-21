@@ -26,6 +26,7 @@ import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.generated.TunerConstants;
 
 import frc.robot.commands.AutoAimAndShootCommand; // Import your new command
+import frc.robot.commands.AutoAimTurretCommand;
 
 public class RobotContainer {
 
@@ -90,12 +91,16 @@ public class RobotContainer {
 
         configureDriveBindings();
         configureTurretBindings();
-        configureIntakeBindings();
+        //configureIntakeBindings();
         configureFeederBindings();
         configureShooterBindings();
 
         joystick.rightTrigger().whileTrue(
             new AutoAimAndShootCommand(drivetrain, turret, hood, flywheel, feeder)
+        );
+
+        joystick.leftTrigger().whileTrue(
+            new AutoAimTurretCommand(drivetrain, turret)
         );
 
     }
@@ -109,7 +114,7 @@ public class RobotContainer {
         // Go to SmartDashboard angle
         joystick.x().onTrue(Commands.runOnce(() -> {
             double angle = SmartDashboard.getNumber("Turret Target Angle (deg)", 0.0);
-            turret.setHeading(angle);
+            turret.setFieldHeading(angle);
         }, turret));
 
         // Stop turret

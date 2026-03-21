@@ -17,9 +17,12 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.system.plant.LinearSystemId;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.simulation.DCMotorSim;
@@ -465,6 +468,13 @@ public class TurretSubsystem extends SubsystemBase {
         Pose2d turretTargetPose = new Pose2d(turretBasePose.getTranslation(), targetHeading);
         turretField.getObject("TargetHeading").setPose(turretTargetPose);
 
+        Translation2d targetPosition = DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
+            ? ShootingConstants.RED_TARGET
+            : ShootingConstants.BLUE_TARGET;
+        Pose2d targetPose = new Pose2d(targetPosition, Rotation2d.kZero);
+        turretField.getObject("TargetPosition").setPose(targetPose);
+        turretField.getObject("TurretToTarget").setPoses(turretBasePose, targetPose);
+
         // 4. ── Telemetry ──────────────────────────────────────────────────────────
         SmartDashboard.putNumber ("Turret/Mechanism_Degrees",         currentDeg);
         SmartDashboard.putNumber ("Turret/Mechanism_Rotations",       getMechanismRotations());
@@ -480,5 +490,7 @@ public class TurretSubsystem extends SubsystemBase {
         SmartDashboard.putBoolean("Turret/Chassis_Compensation",      chassisCompensationEnabled);
         SmartDashboard.putNumber ("Turret/Field_Target_Degrees",      fieldTargetDegrees);
         SmartDashboard.putNumber ("Turret/Chassis_Heading_Degrees",   chassisHeadingSupplier.get().getDegrees());
+    SmartDashboard.putNumber ("Turret/Target_X",                  targetPosition.getX());
+    SmartDashboard.putNumber ("Turret/Target_Y",                  targetPosition.getY());
     }
 }

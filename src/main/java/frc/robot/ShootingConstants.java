@@ -9,6 +9,6 @@ public class ShootingConstants {
     public static final Transform3d ROBOT_TO_TURRET = new Transform3d(-0.19685, 0.0, 0.44, Rotation3d.kZero);
     
     // Position of the target on the field (Update these to the 2026 field map locations!)
-    public static final Translation2d BLUE_TARGET = new Translation2d(0.0, 5.54); 
-    public static final Translation2d RED_TARGET = new Translation2d(16.54, 5.54);
+    public static final Translation2d BLUE_TARGET = new Translation2d(4.5, 4.0); 
+    public static final Translation2d RED_TARGET = new Translation2d(12, 4);
 }

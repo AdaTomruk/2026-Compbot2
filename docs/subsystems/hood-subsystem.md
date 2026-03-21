@@ -27,6 +27,10 @@
 - `applyPendingSeed()` waits 250 ms after boot for CAN stability, then computes the offset using `HoodAngleUtil`.
 - Soft limits are recomputed after seeding.
 
+## Calibration
+
+See `docs/calibration-guide.md` for hood angle limits, gear ratio validation, and Motion Magic tuning steps.
+
 ## Telemetry
 
 SmartDashboard outputs:

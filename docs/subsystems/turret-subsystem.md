@@ -36,6 +36,10 @@ All movement flows through `driveToRotations(...)`, which enforces:
 
 When enabled, `periodic()` re-computes the turret’s robot-relative angle based on the chassis heading supplier.
 
+## Calibration
+
+See `docs/calibration-guide.md` for CRT offsets, gear ratios, soft limits, and PID/FF tuning steps.
+
 ## Telemetry
 
 Published to SmartDashboard:

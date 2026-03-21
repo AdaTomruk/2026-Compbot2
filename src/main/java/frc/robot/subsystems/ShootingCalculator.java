@@ -124,7 +124,12 @@ public class ShootingCalculator {
         double lookaheadTurretToTargetDistance = turretToTargetDistance;
         
         for (int i = 0; i < 20; i++) {
-            timeOfFlight = timeOfFlightMap.get(lookaheadTurretToTargetDistance);
+            // Clamp the distance to the boundaries of the timeOfFlightMap (1.38m to 5.68m)
+            // This prevents a NullPointerException if the calculated distance goes out of bounds.
+            double clampedDistance = Math.max(1.38, Math.min(5.68, lookaheadTurretToTargetDistance));
+            
+            timeOfFlight = timeOfFlightMap.get(clampedDistance);
+            
             double offsetX = turretVelocityX * timeOfFlight;
             double offsetY = turretVelocityY * timeOfFlight;
             
@@ -135,9 +140,13 @@ public class ShootingCalculator {
             lookaheadTurretToTargetDistance = target.getDistance(lookaheadPose.getTranslation());
         }
 
-        // 5. Final Hardware Target Conversions
-        Rotation2d turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
-        double hoodAngleRadians = launchHoodAngleMap.get(lookaheadTurretToTargetDistance).getRadians();
+    // 5. Final Hardware Target Conversions
+    boolean isValid = lookaheadTurretToTargetDistance >= minDistance 
+               && lookaheadTurretToTargetDistance <= maxDistance;
+    double clampedDistance = Math.max(minDistance, Math.min(maxDistance, lookaheadTurretToTargetDistance));
+
+    Rotation2d turretAngle = target.minus(lookaheadPose.getTranslation()).getAngle();
+    double hoodAngleRadians = launchHoodAngleMap.get(clampedDistance).getRadians();
         
         if (lastTurretAngle == null) lastTurretAngle = turretAngle;
         if (Double.isNaN(lastHoodAngle)) lastHoodAngle = hoodAngleRadians;
@@ -150,9 +159,6 @@ public class ShootingCalculator {
         lastTurretAngle = turretAngle;
         lastHoodAngle = hoodAngleRadians;
 
-        boolean isValid = lookaheadTurretToTargetDistance >= minDistance 
-                       && lookaheadTurretToTargetDistance <= maxDistance;
-
         // Telemetry
         SmartDashboard.putNumber("LaunchCalculator/LookaheadDist", lookaheadTurretToTargetDistance);
         SmartDashboard.putBoolean("LaunchCalculator/IsValidTarget", isValid);
@@ -163,7 +169,7 @@ public class ShootingCalculator {
             calculatedTurretVel,
             Math.toDegrees(hoodAngleRadians),
             calculatedHoodVel,
-            launchFlywheelSpeedMap.get(lookaheadTurretToTargetDistance)
+            launchFlywheelSpeedMap.get(clampedDistance)
         );
     }
 }

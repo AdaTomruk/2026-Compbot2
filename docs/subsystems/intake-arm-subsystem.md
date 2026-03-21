@@ -27,6 +27,10 @@
 - `mPeriodicIO` tracks the requested target angle and arm state.
 - `isOpen` is a static flag used for toggling and dashboard display.
 
+## Calibration
+
+See `docs/calibration-guide.md` for pivot angle limits, gear ratio validation, and PID/FF tuning steps.
+
 ## Simulation
 
 - Uses `SingleJointedArmSim` with a NEO motor model and `SparkMaxSim`.

@@ -24,6 +24,10 @@
 - Inversion and smart current limits are configured on boot.
 - Settings are persisted on the controller (`PersistMode.kPersistParameters`).
 
+## Calibration
+
+See `docs/calibration-guide.md` for feeder current limit and speed checks.
+
 ## Telemetry
 
 - No telemetry is currently published; add to `periodic()` if needed.

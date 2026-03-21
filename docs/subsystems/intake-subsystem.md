@@ -27,6 +27,10 @@ Each motor is configured with:
 - `outtake()`: Runs all rollers outward using *_OUTTAKE_OUTPUT constants.
 - `stopRollers()`: Stops all motors.
 
+## Calibration
+
+See `docs/calibration-guide.md` for current limit checks and roller output validation.
+
 ## Telemetry
 
 SmartDashboard outputs the motor outputs each loop:

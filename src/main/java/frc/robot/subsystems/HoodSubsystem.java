@@ -38,6 +38,7 @@ public class HoodSubsystem extends SubsystemBase {
     private double sensorOffsetDeg = 0.0;
     private boolean hasSeeded = false;
     private Double pendingSeedAngleDeg = null;
+    private boolean dashboardControlEnabled = true;
 
     // --- Constructor ---
     public HoodSubsystem() {
@@ -155,6 +156,19 @@ public class HoodSubsystem extends SubsystemBase {
         System.out.println("Hood target set to: " + targetAngleDeg + "°");
     }
 
+    public void setAngleFromAuto(double degrees) {
+        setAngle(degrees);
+        SmartDashboard.putNumber("Hood Target Angle (deg)", targetAngleDeg);
+    }
+
+    public void enableDashboardControl() {
+        dashboardControlEnabled = true;
+    }
+
+    public void disableDashboardControl() {
+        dashboardControlEnabled = false;
+    }
+
     public void enablePID() {
         pidEnabled = true;
         applyMotionMagic();
@@ -240,9 +254,11 @@ public class HoodSubsystem extends SubsystemBase {
         }
 
         // Read SmartDashboard target — only apply if changed
-        double dashTarget = SmartDashboard.getNumber("Hood Target Angle (deg)", targetAngleDeg);
-        if (dashTarget != targetAngleDeg) {
-            setAngle(dashTarget);
+        if (dashboardControlEnabled) {
+            double dashTarget = SmartDashboard.getNumber("Hood Target Angle (deg)", targetAngleDeg);
+            if (dashTarget != targetAngleDeg) {
+                setAngle(dashTarget);
+            }
         }
 
         SmartDashboard.putNumber("Hood Angle (deg)", getAngleDeg());

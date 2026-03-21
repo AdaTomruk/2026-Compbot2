@@ -49,10 +49,16 @@ public class AutoAimAndShootCommand extends Command {
     public void initialize() {
         // Optional: Ensure PID is enabled for the hood when the command starts
         hood.enablePID();
+        hood.disableDashboardControl();
     }
 
     @Override
     public void execute() {
+        if (!turret.isCRTSeeded()) {
+            feeder.stop();
+            flywheel.warmUp();
+            return;
+        }
         // 1. Get current robot state from Phoenix 6 Swerve
         Pose2d pose = drivetrain.getState().Pose;
         ChassisSpeeds robotSpeeds = drivetrain.getState().Speeds;
@@ -72,7 +78,7 @@ public class AutoAimAndShootCommand extends Command {
         if (params.isValid()) {
             // 5. Update mechanism targets based on distance
             turret.setFieldHeading(params.turretAngleDegrees());
-            hood.setAngle(params.hoodAngleDegrees());
+            hood.setAngleFromAuto(params.hoodAngleDegrees());
             flywheel.setRPM(params.flywheelRPM());
 
             // 6. Check if we are "locked on" to the target
@@ -99,5 +105,6 @@ public class AutoAimAndShootCommand extends Command {
         feeder.stop();
         flywheel.stop(); // or flywheel.warmUp() if you want to stay ready
         turret.stop();   //
+        hood.enableDashboardControl();
     }
 }

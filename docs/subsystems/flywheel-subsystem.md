@@ -29,6 +29,10 @@
 - Current limits and PIDF values are applied to both motors.
 - Sensor ratio (`FLYWHEEL_GEAR_RATIO`) is applied via CTRE Feedback config.
 
+## Calibration
+
+See `docs/calibration-guide.md` for flywheel gear ratio checks, PID/FF tuning, and speed tolerance guidance.
+
 ## Telemetry
 
 SmartDashboard outputs:

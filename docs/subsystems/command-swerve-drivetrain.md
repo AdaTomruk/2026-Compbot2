@@ -29,6 +29,10 @@
 - **Alliance flipping:** PathPlanner paths are flipped when on the red alliance.
 - **Perspective:** `setOperatorPerspectiveForward(...)` is applied based on DS alliance when disabled.
 
+## Calibration
+
+See `docs/calibration-guide.md` for swerve gear ratios, encoder offsets, and drive/steer PID tuning steps.
+
 ## Telemetry and logging
 
 - SysId routines log state to `SignalLogger` (translation, steer, rotation).
