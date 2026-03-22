@@ -3,15 +3,12 @@ package frc.robot.subsystems;
 import static frc.robot.Constants.IntakeConstants.*;
 
 // ── NEW 2026 REVLib IMPORTS ───────────────────────────────────────────────
-import com.revrobotics.PersistMode;
-import com.revrobotics.ResetMode;
-
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.ctre.phoenix6.controls.NeutralOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.revrobotics.PersistMode;
+import com.revrobotics.ResetMode;
 
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
@@ -22,7 +19,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 /**
- * Intake mechanism subsystem using three SPARK MAX motor controllers.
+ * Intake mechanism subsystem using two SPARK MAX motor controllers and one Kraken X60.
  */
 public class IntakeSubsystem extends SubsystemBase {
 
@@ -31,14 +28,10 @@ public class IntakeSubsystem extends SubsystemBase {
     private final SparkMax bottomRollerMotor = new SparkMax(BOTTOM_ROLLER_MOTOR_ID, MotorType.kBrushless);
     private final TalonFX outerRollerMotor   = new TalonFX(OUTER_ROLLER_MOTOR_ID);
 
-    // ── Control Requests ─────────────────────────────────────────────────────
-    private final DutyCycleOut outerRollerRequest = new DutyCycleOut(0).withEnableFOC(false);
-    private final NeutralOut outerRollerNeutralRequest = new NeutralOut();
-
     public IntakeSubsystem() {
         configureRoller(upperIndexMotor,   UPPER_INDEX_INVERTED);
         configureRoller(bottomRollerMotor, BOTTOM_ROLLER_INVERTED);
-        configureOuterRoller();
+        configureKraken(outerRollerMotor,  OUTER_ROLLER_INVERTED);
     }
 
     private void configureRoller(SparkMax motor, boolean inverted) {
@@ -52,11 +45,11 @@ public class IntakeSubsystem extends SubsystemBase {
         motor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kNoPersistParameters);
     }
 
-    private void configureOuterRoller() {
+    private void configureKraken(TalonFX motor, boolean inverted) {
         TalonFXConfiguration config = new TalonFXConfiguration();
 
         config.MotorOutput
-            .withInverted(OUTER_ROLLER_INVERTED
+            .withInverted(inverted
                 ? InvertedValue.Clockwise_Positive
                 : InvertedValue.CounterClockwise_Positive)
             .withNeutralMode(NeutralModeValue.Brake);
@@ -67,7 +60,7 @@ public class IntakeSubsystem extends SubsystemBase {
             .withStatorCurrentLimit(ROLLER_SMART_CURRENT_LIMIT_A)
             .withStatorCurrentLimitEnable(true);
 
-        outerRollerMotor.getConfigurator().apply(config);
+        motor.getConfigurator().apply(config);
     }
 
     @Override
@@ -75,8 +68,7 @@ public class IntakeSubsystem extends SubsystemBase {
         // SmartDashboard telemetry
         SmartDashboard.putNumber("Intake/Upper_Output", upperIndexMotor.get());
         SmartDashboard.putNumber("Intake/Bottom_Output", bottomRollerMotor.get());
-        SmartDashboard.putNumber("Intake/Outer_Output",
-            outerRollerMotor.getDutyCycle().getValueAsDouble());
+        SmartDashboard.putNumber("Intake/Outer_Output", outerRollerMotor.get());
     }
 
     // ── Roller control ────────────────────────────────────────────────────────
@@ -85,20 +77,20 @@ public class IntakeSubsystem extends SubsystemBase {
     public void intake() {
         upperIndexMotor.set(UPPER_INDEX_INTAKE_OUTPUT);
         bottomRollerMotor.set(BOTTOM_ROLLER_INTAKE_OUTPUT);
-    outerRollerMotor.setControl(outerRollerRequest.withOutput(OUTER_ROLLER_INTAKE_OUTPUT));
+        outerRollerMotor.set(OUTER_ROLLER_INTAKE_OUTPUT);
     }
 
     /** Runs all intake rollers outward to eject game pieces. */
     public void outtake() {
         upperIndexMotor.set(UPPER_INDEX_OUTTAKE_OUTPUT);
         bottomRollerMotor.set(BOTTOM_ROLLER_OUTTAKE_OUTPUT);
-    outerRollerMotor.setControl(outerRollerRequest.withOutput(OUTER_ROLLER_OUTTAKE_OUTPUT));
+        outerRollerMotor.set(OUTER_ROLLER_OUTTAKE_OUTPUT);
     }
 
     /** Stops all roller motors. */
     public void stopRollers() {
         upperIndexMotor.stopMotor();
         bottomRollerMotor.stopMotor();
-        outerRollerMotor.setControl(outerRollerNeutralRequest);
+        outerRollerMotor.stopMotor();
     }
 }
